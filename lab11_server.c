@@ -32,13 +32,25 @@ typedef struct
 
 } server_msg_t;
 
-typedef struct
+struct mapping
 {
 
     char *course_name;
     char *teacher_name;
 
-} mapping;
+} ;
+
+struct teacher
+{
+
+    char *teacher_name;
+
+};
+
+int course_count = 0;
+int teacher_count = 0;
+struct mapping pairs[MAX_COURSES];
+struct teacher teachers[MAX_TEACHERS];
 
 static client_msg_t client_msg;
 
@@ -48,22 +60,66 @@ static client_msg_t client_msg;
 #define MAX_MSG_SIZE sizeof(client_msg_t)
 #define MSG_BUFFER_SIZE (MAX_MSG_SIZE * MAX_MESSAGES)
 
-void update(server_msg_t out_msg, char * result)
+void update(client_msg_t out_msg, char * result)
 {
-    if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'T' && out_msg.msg_val[2] == ' ')
+    if(out_msg.msg_val[2] != ' ')
     {
+        strcpy(result,"FAILED\n");
+        return;
+    }
+    else
+    {
+        out_msg.msg_val[2] = ',';
+    }
+
+    int count = 0;
+    for(int i = 0; i < strlen(out_msg.msg_val); i++)
+    {
+        if(out_msg.msg_val[i] == ' ')  
+            out_msg.msg_val[i] = '_';
+        if(out_msg.msg_val[i] == ',')  
+            count++;
+    }
+
+    if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'T')
+    {
+        if(count+teacher_count+1 > MAX_TEACHERS)
+        {
+            strcpy(result,"OVERFLOW\n");
+            return;            
+        }
+
+        char * token = strtok(out_msg.msg_val, ",");
+        while( token != NULL )
+        {
+            printf( "%s\n", token );
+            token = strtok(NULL, ",");
+        }
+    }
+    else if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'C')
+    {
+        if(count+course_count+1 > MAX_COURSES)
+        {
+            strcpy(result,"OVERFLOW\n");
+            return;
+        }
 
     }
-    else if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'C' && out_msg.msg_val[2] == ' ')
+    else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'T')
     {
-
+        if(teacher_count - (count+1) < MIN_TEACHERS)
+        {
+            strcpy(result,"UNDERFLOW\n");
+            return;
+        }
     }
-    else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'T' && out_msg.msg_val[2] == ' ')
+    else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'C')
     {
-
-    }
-    else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'C' && out_msg.msg_val[2] == ' ')
-    {
+        if(course_count - (count+1) < MIN_COURSES)
+        {
+            strcpy(result,"UNDERFLOW\n");
+            return;
+        }
 
     }
     else
@@ -143,11 +199,10 @@ int main (int argc, char **argv)
 
         printf("\nMessage Recieved from %s: %s\n", in_msg.client_q, in_msg.msg_val);
 
-		server_msg_t out_msg;
-
         char *result = (char *)malloc(100 * sizeof(char));
-        update(out_msg, result);
+        update(in_msg, result);
 
+		server_msg_t out_msg;
 		sprintf(out_msg.msg_val, "%s", result);
 		printf("%s", result);
 
