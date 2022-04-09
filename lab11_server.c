@@ -52,6 +52,11 @@ int teacher_count = 0;
 struct mapping pairs[MAX_COURSES];
 struct teacher teachers[MAX_TEACHERS];
 
+int minCourses;
+int maxCourses;
+int minTeacher;
+int maxTeacher;
+
 static client_msg_t client_msg;
 
 #define SERVER_QUEUE_NAME   "/server_msgq"
@@ -59,6 +64,19 @@ static client_msg_t client_msg;
 #define MAX_MESSAGES 10
 #define MAX_MSG_SIZE sizeof(client_msg_t)
 #define MSG_BUFFER_SIZE (MAX_MSG_SIZE * MAX_MESSAGES)
+
+void addTeacher(char *token)
+{
+    struct teacher teachers[MAX_TEACHERS];
+    for(int i=0;i<MAX_TEACHERS;i++)
+    {
+        if(strcmp(teachers[i].teacher_name,"NULL") == 0)
+        {
+            strcpy(teachers[i].teacher_name,token);
+            break;
+        }
+    }
+}
 
 void update(client_msg_t out_msg, char * result)
 {
@@ -83,22 +101,27 @@ void update(client_msg_t out_msg, char * result)
 
     if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'T')
     {
-        if(count+teacher_count+1 > MAX_TEACHERS)
+        if(count+teacher_count+1 > maxTeacher)
         {
             strcpy(result,"OVERFLOW\n");
             return;            
         }
 
-        char * token = strtok(out_msg.msg_val, ",");
+        char * token = strtok(out_msg.msg_val, ",");// initial part needs to be ignored e.g. AT
+
+        token = strtok(NULL, ",");
         while( token != NULL )
         {
             printf( "%s\n", token );
+            addTeacher(token);
             token = strtok(NULL, ",");
         }
+
+        teacher_count = count+teacher_count+1;
     }
     else if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'C')
     {
-        if(count+course_count+1 > MAX_COURSES)
+        if(count+course_count+1 > maxCourses)
         {
             strcpy(result,"OVERFLOW\n");
             return;
@@ -107,7 +130,7 @@ void update(client_msg_t out_msg, char * result)
     }
     else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'T')
     {
-        if(teacher_count - (count+1) < MIN_TEACHERS)
+        if(teacher_count - (count+1) < minTeacher)
         {
             strcpy(result,"UNDERFLOW\n");
             return;
@@ -115,7 +138,7 @@ void update(client_msg_t out_msg, char * result)
     }
     else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'C')
     {
-        if(course_count - (count+1) < MIN_COURSES)
+        if(course_count - (count+1) < minCourses)
         {
             strcpy(result,"UNDERFLOW\n");
             return;
@@ -134,10 +157,10 @@ int main (int argc, char **argv)
 
     printf ("Edu_Server: Welcome !!!\n");
 
-    int minCourses = MIN_COURSES;
-    int maxCourses = MAX_COURSES;
-    int minTeacher = MIN_TEACHERS;
-    int maxTeacher = MAX_TEACHERS;
+    minCourses = MIN_COURSES;
+    maxCourses = MAX_COURSES;
+    minTeacher = MIN_TEACHERS;
+    maxTeacher = MAX_TEACHERS;
 
     int choice;
     printf("\nDo you want to change default values? (Yes -> 1; No -> -1): ");
