@@ -68,18 +68,32 @@ static client_msg_t client_msg;
 void generateReport()
 {
     printf("\n\n Generated Report\n\n");
-    for(int i =0;i<maxCourses;i++)
+    
+    if(course_count !=0)
     {
-        if(!(strcmp(pairs[i].course_name,"NULL") == 0))
+
+        printf("\n Courses : Teachers\n\n");
+        for(int i =0;i<maxCourses;i++)
         {
-            printf("%s %s\n",pairs[i].course_name,pairs[i].teacher_name);
+            if(!(strcmp(pairs[i].course_name,"NULL") == 0))
+            {
+                printf("   %s : %s\n",pairs[i].course_name,pairs[i].teacher_name);
+            }
         }
+
     }
-    for(int i =0;i<maxTeacher;i++)
+    
+    printf("\n\n Teachers\n\n");
+    
+    if(teacher_count !=0)
     {
-        if(!(strcmp(teachers[i].teacher_name,"NULL") == 0))
+
+        for(int i =0;i<maxTeacher;i++)
         {
-            printf("%s\n",teachers[i].teacher_name);
+            if(!(strcmp(teachers[i].teacher_name,"NULL") == 0))
+            {
+                printf("   %s\n",teachers[i].teacher_name);
+            }
         }
     }
 }
