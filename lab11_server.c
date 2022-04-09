@@ -49,8 +49,8 @@ struct teacher
 
 int course_count = 0;
 int teacher_count = 0;
-struct mapping pairs[MAX_COURSES];
-struct teacher teachers[MAX_TEACHERS];
+struct mapping *pairs;
+struct teacher *teachers;
 
 int minCourses;
 int maxCourses;
@@ -65,14 +65,92 @@ static client_msg_t client_msg;
 #define MAX_MSG_SIZE sizeof(client_msg_t)
 #define MSG_BUFFER_SIZE (MAX_MSG_SIZE * MAX_MESSAGES)
 
+void generateReport()
+{
+    printf("\n\n Generated Report\n\n");
+    for(int i =0;i<maxCourses;i++)
+    {
+        if(!(strcmp(pairs[i].course_name,"NULL") == 0))
+        {
+            printf("%s %s\n",pairs[i].course_name,pairs[i].teacher_name);
+        }
+    }
+    for(int i =0;i<maxTeacher;i++)
+    {
+        if(!(strcmp(teachers[i].teacher_name,"NULL") == 0))
+        {
+            printf("%s\n",teachers[i].teacher_name);
+        }
+    }
+}
+
 void addTeacher(char *token)
 {
-    struct teacher teachers[MAX_TEACHERS];
-    for(int i=0;i<MAX_TEACHERS;i++)
+    for(int i=0;i<maxTeacher;i++)
     {
         if(strcmp(teachers[i].teacher_name,"NULL") == 0)
         {
             strcpy(teachers[i].teacher_name,token);
+            break;
+        }
+    }
+}
+
+void addCourse(char *token)
+{
+    for(int i=0;i<maxCourses;i++)
+    {
+        if(strcmp(pairs[i].course_name,"NULL") == 0)
+        {
+            strcpy(pairs[i].course_name,token);
+            int random_int = rand()%teacher_count;
+            int f=0;
+            for(int j=0;j<maxTeacher;j++)
+            {
+                if(!(strcmp(teachers[j].teacher_name,"NULL") == 0))
+                {
+                    if(f == random_int)
+                    {
+                        strcpy(pairs[i].teacher_name,teachers[j].teacher_name);
+                        break;
+                    }
+                    f++;
+                }
+            }
+            break;
+        }
+    }
+}
+
+void deleteCourse(char *token)
+{
+    for(int i=0;i<maxCourses;i++)
+    {
+        if(strcmp(pairs[i].course_name,token) == 0)
+        {
+            strcpy(pairs[i].course_name,"NULL");
+            strcpy(pairs[i].teacher_name,"NULL");
+            break;
+        }
+    }
+}
+
+void deleteTeacher(char *token)
+{
+    for(int i=0;i<maxCourses;i++)
+    {
+        if(strcmp(pairs[i].teacher_name,token) == 0)
+        {
+            strcpy(pairs[i].course_name,"NULL");
+            strcpy(pairs[i].teacher_name,"NULL");
+        }
+    }
+    
+    for(int i=0;i<maxCourses;i++)
+    {
+        if(strcmp(teachers[i].teacher_name,token) == 0)
+        {
+            strcpy(teachers[i].teacher_name,"NULL");
             break;
         }
     }
@@ -98,7 +176,7 @@ void update(client_msg_t out_msg, char * result)
         if(out_msg.msg_val[i] == ',')  
             count++;
     }
-
+    count--;
     if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'T')
     {
         if(count+teacher_count+1 > maxTeacher)
@@ -112,12 +190,12 @@ void update(client_msg_t out_msg, char * result)
         token = strtok(NULL, ",");
         while( token != NULL )
         {
-            printf( "%s\n", token );
             addTeacher(token);
+            teacher_count++;
             token = strtok(NULL, ",");
         }
 
-        teacher_count = count+teacher_count+1;
+        strcpy(result,"DONE\n");
     }
     else if(out_msg.msg_val[0] == 'A' && out_msg.msg_val[1] == 'C')
     {
@@ -127,14 +205,38 @@ void update(client_msg_t out_msg, char * result)
             return;
         }
 
+        char * token = strtok(out_msg.msg_val, ",");// initial part needs to be ignored e.g. AT
+
+        token = strtok(NULL, ",");
+        while( token != NULL )
+        {
+            addCourse(token);
+            course_count++;
+            token = strtok(NULL, ",");
+        }
+
+        strcpy(result,"DONE\n");
     }
     else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'T')
     {
+        printf("%d %d",teacher_count,count);
         if(teacher_count - (count+1) < minTeacher)
         {
             strcpy(result,"UNDERFLOW\n");
             return;
         }
+
+        char * token = strtok(out_msg.msg_val, ",");// initial part needs to be ignored e.g. AT
+
+        token = strtok(NULL, ",");
+        while( token != NULL )
+        {
+            deleteTeacher(token);
+            teacher_count--;
+            token = strtok(NULL, ",");
+        }
+
+        strcpy(result,"DONE\n");
     }
     else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'C')
     {
@@ -144,13 +246,23 @@ void update(client_msg_t out_msg, char * result)
             return;
         }
 
+        char * token = strtok(out_msg.msg_val, ",");// initial part needs to be ignored e.g. AT
+
+        token = strtok(NULL, ",");
+        while( token != NULL )
+        {
+            deleteCourse(token);
+            course_count--;
+            token = strtok(NULL, ",");
+        }
+
+        strcpy(result,"DONE\n");
     }
     else
     {
         strcpy(result,"FAILED\n");
     }
 }
-
 
 int main (int argc, char **argv)
 {
@@ -161,6 +273,22 @@ int main (int argc, char **argv)
     maxCourses = MAX_COURSES;
     minTeacher = MIN_TEACHERS;
     maxTeacher = MAX_TEACHERS;
+
+    pairs = (struct mapping *)malloc(MAX_COURSES * sizeof(struct mapping));
+    for(int i=0;i<MAX_COURSES;i++)
+    {
+        pairs[i].course_name = (char *)malloc(100 * sizeof(char));
+        strcpy(pairs[i].course_name,"NULL");
+        pairs[i].teacher_name = (char *)malloc(100 * sizeof(char));
+        strcpy(pairs[i].teacher_name,"NULL");
+    }
+
+    teachers = (struct teacher *)malloc(MAX_TEACHERS * sizeof(struct teacher));
+    for(int i=0;i<MAX_TEACHERS;i++)
+    {
+        teachers[i].teacher_name = (char *)malloc(100 * sizeof(char));
+        strcpy(teachers[i].teacher_name,"NULL");
+    }
 
     int choice;
     printf("\nDo you want to change default values? (Yes -> 1; No -> -1): ");
@@ -212,7 +340,6 @@ int main (int argc, char **argv)
 
     while (1)
     {
-
         // ssize_t mq_receive(mqd_t mqdes, char *msg_ptr, size_t msg_len, unsigned int *msg_prio);
         if (mq_receive(qd_srv,(char *) &in_msg, MAX_MSG_SIZE, NULL) == -1)
         {
@@ -243,6 +370,6 @@ int main (int argc, char **argv)
             perror ("Server MsgQ: Not able to send message to the client queue");
             continue;
         }
-
+        generateReport();
     } // end of while(1)
 }  // end of main()
