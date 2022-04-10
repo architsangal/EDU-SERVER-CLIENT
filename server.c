@@ -1,4 +1,3 @@
-// gcc -o msgqsrv lab11_server.c -lrt
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +21,7 @@
 
 int sem;
 sem_t sem_bin;
+int dup_element;
 
 typedef struct
 {
@@ -136,6 +136,7 @@ void addTeacher(char *token)
     {
         if(strcmp(teachers[i].teacher_name,token) == 0)
         {
+            dup_element = 1;
             return;
         }
     }
@@ -157,6 +158,7 @@ void addCourse(char *token)
     {
         if(strcmp(pairs[i].course_name,token) == 0)
         {
+            dup_element = 1;
             return;
         }
     }
@@ -287,7 +289,6 @@ void update(client_msg_t out_msg, char * result)
     }
     else if(out_msg.msg_val[0] == 'D' && out_msg.msg_val[1] == 'T')
     {
-        printf("%d %d",teacher_count,count);
         if(teacher_count - (count+1) < minTeacher)
         {
             strcpy(result,"UNDERFLOW\n");
@@ -448,6 +449,12 @@ int main (int argc, char **argv)
 
         char *result = (char *)malloc(100 * sizeof(char));
         update(in_msg, result);
+
+        if(dup_element == 1)
+        {
+            dup_element = 0;
+            strcpy(result,"DUPLICATE");
+        }
 
 		server_msg_t out_msg;
 		sprintf(out_msg.msg_val, "%s", result);
