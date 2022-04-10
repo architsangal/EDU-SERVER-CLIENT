@@ -6,6 +6,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <mqueue.h>
+#include <signal.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #define MSG_VAL_LEN  100
 #define CLIENT_Q_NAME_LEN 100   // For the client queue message
@@ -16,6 +19,7 @@
 #define MIN_TEACHERS 1
 #define MAX_TEACHERS 10
 
+int sem;
 typedef struct
 {
 
@@ -65,25 +69,32 @@ static client_msg_t client_msg;
 #define MAX_MSG_SIZE sizeof(client_msg_t)
 #define MSG_BUFFER_SIZE (MAX_MSG_SIZE * MAX_MESSAGES)
 
-void generateReport()
+void generateReport(int code)
 {
-    printf("\n\n Generated Report\n\n");
+    signal(SIGINT,generateReport);
+    FILE * fptr;
+    if(code != 1)
+        fptr = fopen("report.txt", "w");
+    else
+        fptr = stdout;
+
+    fprintf(fptr,"\n\n Generated Report\n\n");
     
     if(course_count !=0)
     {
 
-        printf("\n Courses : Teachers\n\n");
+        fprintf(fptr,"\n Courses : Teachers\n\n");
         for(int i =0;i<maxCourses;i++)
         {
             if(!(strcmp(pairs[i].course_name,"NULL") == 0))
             {
-                printf("   %s : %s\n",pairs[i].course_name,pairs[i].teacher_name);
+                fprintf(fptr,"   %s : %s\n",pairs[i].course_name,pairs[i].teacher_name);
             }
         }
 
     }
     
-    printf("\n\n Teachers\n\n");
+    fprintf(fptr,"\n\n Teachers\n\n");
     
     if(teacher_count !=0)
     {
@@ -92,9 +103,15 @@ void generateReport()
         {
             if(!(strcmp(teachers[i].teacher_name,"NULL") == 0))
             {
-                printf("   %s\n",teachers[i].teacher_name);
+                fprintf(fptr,"   %s\n",teachers[i].teacher_name);
             }
         }
+    }
+    
+    if(code != 1)
+    {
+        fclose(fptr);
+        exit(0);
     }
 }
 
@@ -304,6 +321,9 @@ int main (int argc, char **argv)
         strcpy(teachers[i].teacher_name,"NULL");
     }
 
+    // sem_t sem_bin;
+    // sem = sem_init(&sem_bin, 0, 1);
+    
     int choice;
     printf("\nDo you want to change default values? (Yes -> 1; No -> -1): ");
     scanf("%d",&choice);
@@ -384,6 +404,7 @@ int main (int argc, char **argv)
             perror ("Server MsgQ: Not able to send message to the client queue");
             continue;
         }
-        generateReport();
+        signal(SIGINT,generateReport);
+        generateReport(1);
     } // end of while(1)
 }  // end of main()
