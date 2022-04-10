@@ -134,6 +134,14 @@ void addTeacher(char *token)
 {
     for(int i=0;i<maxTeacher;i++)
     {
+        if(strcmp(teachers[i].teacher_name,token) == 0)
+        {
+            return;
+        }
+    }
+
+    for(int i=0;i<maxTeacher;i++)
+    {
         if(strcmp(teachers[i].teacher_name,"NULL") == 0)
         {
             strcpy(teachers[i].teacher_name,token);
@@ -145,6 +153,14 @@ void addTeacher(char *token)
 
 void addCourse(char *token)
 {
+    for(int i=0;i<maxCourses;i++)
+    {
+        if(strcmp(pairs[i].course_name,token) == 0)
+        {
+            return;
+        }
+    }
+
     for(int i=0;i<maxCourses;i++)
     {
         if(strcmp(pairs[i].course_name,"NULL") == 0)

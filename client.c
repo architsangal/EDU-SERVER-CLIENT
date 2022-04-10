@@ -37,6 +37,8 @@ typedef struct
 
 int main (int argc, char **argv)
 {
+    printf ("Edu_Client: Welcome !!!\n");
+
     char client_queue_name [64];
     mqd_t qd_srv, qd_client;   // Server and Client Msg queue descriptors
 
@@ -109,7 +111,7 @@ int main (int argc, char **argv)
 
     }
 
-    printf ("Client MsgQ: bye\n");
+    printf ("Exiting Client......\n");
 
     exit(0);
 }
