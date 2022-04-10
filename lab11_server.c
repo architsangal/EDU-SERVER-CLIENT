@@ -210,6 +210,8 @@ void deleteTeacher(char *token)
 void update(client_msg_t out_msg, char * result)
 {
     sem_wait(&sem_bin);
+    printf("\nMessage Recieved from %s: %s\n", out_msg.client_q, out_msg.msg_val);
+
     if(out_msg.msg_val[2] != ' ')
     {
         strcpy(result,"FAILED\n");
@@ -427,8 +429,6 @@ int main (int argc, char **argv)
             perror ("Server msgq: mq_receive");
             exit (1);
         }
-
-        printf("\nMessage Recieved from %s: %s\n", in_msg.client_q, in_msg.msg_val);
 
         char *result = (char *)malloc(100 * sizeof(char));
         update(in_msg, result);
