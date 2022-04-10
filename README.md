@@ -6,3 +6,6 @@
 - `./server`
 - `gcc -o client client.c -lrt`
 - `./client`
+
+By Archit Sangal
+IMT2019012
