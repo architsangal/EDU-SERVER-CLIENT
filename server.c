@@ -233,6 +233,7 @@ void update(client_msg_t out_msg, char * result)
     if(out_msg.msg_val[2] != ' ')
     {
         strcpy(result,"FAILED\n");
+        sem_post(&sem_bin);
         return;
     }
     else
@@ -254,6 +255,7 @@ void update(client_msg_t out_msg, char * result)
         if(count+teacher_count+1 > maxTeacher)
         {
             strcpy(result,"OVERFLOW\n");
+            sem_post(&sem_bin);
             return;            
         }
 
@@ -273,6 +275,7 @@ void update(client_msg_t out_msg, char * result)
         if(count+course_count+1 > maxCourses)
         {
             strcpy(result,"OVERFLOW\n");
+            sem_post(&sem_bin);
             return;
         }
 
@@ -292,6 +295,7 @@ void update(client_msg_t out_msg, char * result)
         if(teacher_count - (count+1) < minTeacher)
         {
             strcpy(result,"UNDERFLOW\n");
+            sem_post(&sem_bin);
             return;
         }
 
@@ -311,6 +315,7 @@ void update(client_msg_t out_msg, char * result)
         if(course_count - (count+1) < minCourses)
         {
             strcpy(result,"UNDERFLOW\n");
+            sem_post(&sem_bin);
             return;
         }
 
@@ -335,7 +340,7 @@ void update(client_msg_t out_msg, char * result)
 int main (int argc, char **argv)
 {
     signal(SIGINT,generateReport);
-
+    dup_element = 0;
     printf ("Edu_Server: Welcome !!!\n");
 
     minCourses = MIN_COURSES;
