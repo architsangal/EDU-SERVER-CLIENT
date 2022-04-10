@@ -9,17 +9,20 @@
 #include <signal.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
 
 #define MSG_VAL_LEN  100
 #define CLIENT_Q_NAME_LEN 100   // For the client queue message
 #define MSG_TYPE_LEN 100        // For the server queue message
 
-#define MIN_COURSES 1
+#define MIN_COURSES 10
 #define MAX_COURSES 15
-#define MIN_TEACHERS 1
+#define MIN_TEACHERS 5
 #define MAX_TEACHERS 10
 
 int sem;
+sem_t sem_bin;
+
 typedef struct
 {
 
@@ -72,29 +75,30 @@ static client_msg_t client_msg;
 void generateReport(int code)
 {
     signal(SIGINT,generateReport);
+    
     FILE * fptr;
-    if(code != 1)
+    if(code == 2)
         fptr = fopen("report.txt", "w");
     else
         fptr = stdout;
 
-    fprintf(fptr,"\n\n Generated Report\n\n");
+    fprintf(fptr,"\n\n<<<<<<<<<<<<<<<<<<<<<Generated Report>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n");
     
     if(course_count !=0)
     {
 
-        fprintf(fptr,"\n Courses : Teachers\n\n");
+        fprintf(fptr,"\n Courses : Teachers -------------------------------------->\n\n");
         for(int i =0;i<maxCourses;i++)
         {
             if(!(strcmp(pairs[i].course_name,"NULL") == 0))
             {
-                fprintf(fptr,"   %s : %s\n",pairs[i].course_name,pairs[i].teacher_name);
+                fprintf(fptr,"             %s : %s\n",pairs[i].course_name,pairs[i].teacher_name);
             }
         }
 
     }
     
-    fprintf(fptr,"\n\n Teachers\n\n");
+    fprintf(fptr,"\n\n Teachers ------------------------------------------------->\n\n");
     
     if(teacher_count !=0)
     {
@@ -103,15 +107,26 @@ void generateReport(int code)
         {
             if(!(strcmp(teachers[i].teacher_name,"NULL") == 0))
             {
-                fprintf(fptr,"   %s\n",teachers[i].teacher_name);
+                fprintf(fptr,"             %s\n",teachers[i].teacher_name);
             }
         }
     }
     
-    if(code != 1)
+    if(code == 2)
     {
         fclose(fptr);
         exit(0);
+    }
+}
+
+void *thread_function(void *pThreadName)
+{
+    while(1)
+    {
+        sem_wait(&sem_bin);
+        generateReport(1);
+        sem_post(&sem_bin);
+        sleep(10);
     }
 }
 
@@ -125,6 +140,7 @@ void addTeacher(char *token)
             break;
         }
     }
+    teacher_count++;
 }
 
 void addCourse(char *token)
@@ -151,6 +167,7 @@ void addCourse(char *token)
             break;
         }
     }
+    course_count++;
 }
 
 void deleteCourse(char *token)
@@ -164,6 +181,7 @@ void deleteCourse(char *token)
             break;
         }
     }
+    course_count--;
 }
 
 void deleteTeacher(char *token)
@@ -185,10 +203,13 @@ void deleteTeacher(char *token)
             break;
         }
     }
+
+    teacher_count--;
 }
 
 void update(client_msg_t out_msg, char * result)
 {
+    sem_wait(&sem_bin);
     if(out_msg.msg_val[2] != ' ')
     {
         strcpy(result,"FAILED\n");
@@ -222,7 +243,6 @@ void update(client_msg_t out_msg, char * result)
         while( token != NULL )
         {
             addTeacher(token);
-            teacher_count++;
             token = strtok(NULL, ",");
         }
 
@@ -242,7 +262,6 @@ void update(client_msg_t out_msg, char * result)
         while( token != NULL )
         {
             addCourse(token);
-            course_count++;
             token = strtok(NULL, ",");
         }
 
@@ -263,7 +282,6 @@ void update(client_msg_t out_msg, char * result)
         while( token != NULL )
         {
             deleteTeacher(token);
-            teacher_count--;
             token = strtok(NULL, ",");
         }
 
@@ -283,7 +301,6 @@ void update(client_msg_t out_msg, char * result)
         while( token != NULL )
         {
             deleteCourse(token);
-            course_count--;
             token = strtok(NULL, ",");
         }
 
@@ -293,10 +310,12 @@ void update(client_msg_t out_msg, char * result)
     {
         strcpy(result,"FAILED\n");
     }
+    sem_post(&sem_bin);
 }
 
 int main (int argc, char **argv)
 {
+    signal(SIGINT,generateReport);
 
     printf ("Edu_Server: Welcome !!!\n");
 
@@ -321,9 +340,13 @@ int main (int argc, char **argv)
         strcpy(teachers[i].teacher_name,"NULL");
     }
 
-    // sem_t sem_bin;
-    // sem = sem_init(&sem_bin, 0, 1);
-    
+    sem = sem_init(&sem_bin, 0, 1);
+    if (sem != 0)
+    {
+        printf("semaphore creation failure: %d\n", sem);
+        exit(1);
+    }
+
     int choice;
     printf("\nDo you want to change default values? (Yes -> 1; No -> -1): ");
     scanf("%d",&choice);
@@ -356,6 +379,21 @@ int main (int argc, char **argv)
     printf("\n Min Teachers: %d",minTeacher);
     printf("\n Max Teachers: %d\n\n",maxTeacher);
 
+    char *ch =  (char *)malloc(100 * sizeof(char));
+    ch[0] = 'A';
+    ch[1] = '\0';
+    for(int i=0;i<minTeacher;i++)
+    {
+        addTeacher(ch);
+        ch[0]++;
+    }
+
+    for(int i=0;i<minCourses;i++)
+    {
+        addCourse(ch);
+        ch[0]++;
+    }
+
     mqd_t qd_srv, qd_client;   // Server and Client Msg queue descriptors
 
     struct mq_attr attr;
@@ -371,6 +409,15 @@ int main (int argc, char **argv)
     }
 
     client_msg_t in_msg;
+
+    int res;
+    pthread_t thread;
+    if ((res = pthread_create(&thread, NULL, &thread_function, "Report Generation")))
+    {
+        printf("Thread1 creation failed: %d\n", res);
+        exit(1);
+    }
+
 
     while (1)
     {
@@ -404,7 +451,5 @@ int main (int argc, char **argv)
             perror ("Server MsgQ: Not able to send message to the client queue");
             continue;
         }
-        signal(SIGINT,generateReport);
-        generateReport(1);
     } // end of while(1)
 }  // end of main()

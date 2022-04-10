@@ -1,14 +1,26 @@
 
 
- Generated Report
+<<<<<<<<<<<<<<<<<<<<<Generated Report>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
- Courses : Teachers
+ Courses : Teachers -------------------------------------->
 
-   AR : A
-   WE : A
+             F : D
+             G : B
+             H : C
+             I : A
+             J : D
+             K : A
+             L : B
+             M : C
+             N : E
+             O : B
 
 
- Teachers
+ Teachers ------------------------------------------------->
 
-   A
+             A
+             B
+             C
+             D
+             E
